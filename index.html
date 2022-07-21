@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Step Sequencer</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.40/Tone.js"
+      integrity="sha512-59wz3/QJMP1QgULLB5O08pqS8wIdlvK1iJaRZm6ESyRrUuxjdRrnKepXKbSTbjX3ZZZ19AbiCJZEaZN7Zm8OjQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <link rel="stylesheet" href="../bootstrap/css/bootstrap.css" />
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 5px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+          "Segoe UI Symbol";
+      }
+
+      h1 {
+        position: absolute;
+        top: 20px;
+        left: 625px;
+        display: block;
+        white-space: nowrap;
+      }
+
+      #playButton {
+        width: 50px;
+        height: 50px;
+        margin-top: 20px;
+        margin-bottom: 35px;
+        background-color: white;
+        display: block;
+        font-style: black;
+        font-size: 50px;
+      }
+      #playButton:hover {
+        cursor: pointer;
+      }
+      .container {
+        z-index: 0;
+        position: relative;
+        display: inline-block;
+        width: 900px;
+      }
+
+      .beat {
+        display: inline-block;
+        background-color: white;
+        width: 22px;
+        height: 63px;
+        border: 1px solid black;
+        border-bottom: 2px solid black;
+        position: relative;
+        margin-right: 1.3px;
+        z-index: 1;
+      }
+      .beat:hover {
+        cursor: pointer;
+      }
+      .beatOn {
+        transition: all 0.1s;
+        background-color: darkgrey;
+        border-bottom: 1px solid black;
+        height: 62px;
+        position: relative;
+      }
+
+      .beatStep {
+        border: #ff3381;
+      }
+
+      .beat:nth-of-type(4n + 4) {
+        margin-right: 8px;
+      }
+      .drumName {
+        font-size: 12px;
+        color: black;
+        display: block;
+      }
+
+      #bpmContainer {
+        position: absolute;
+        display: inline-block;
+        left: 400px;
+        top: 55px;
+      }
+
+      #bpmInput {
+        display: inline-block;
+        position: relative;
+        width: 25px;
+        border: 2px solid black;
+      }
+
+      #bpmInput:focus {
+        border: #ff3381 2px solid;
+        outline: none;
+      }
+
+      #bpmLabel {
+        position: relative;
+        display: inline-block;
+      }
+
+      #signature {
+        position: absolute;
+        left: 500px;
+        top: 0px;
+        padding-top: 30px;
+        height: 110px;
+        width: 110px;
+      }
+      #fileImage {
+        padding-bottom: 10px;
+      }
+      .floating {
+        animation: floating;
+        animation-duration: 3s;
+        animation-iteration-count: infinite;
+        animation-timing-function: ease-in-out;
+      }
+
+      @keyframes floating {
+        from {
+          transform: translate(0, 0px);
+        }
+        65% {
+          transform: translate(0, 8px);
+        }
+        to {
+          transform: translate(0, -0px);
+        }
+      }
+      img {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      #dropZone {
+        position: relative;
+        display: block;
+        width: 75px;
+        height: auto;
+        border: 2px dashed darkgray;
+        bottom: 0%;
+        font-size: 12px;
+        color: darkgray;
+        text-align: center;
+        padding: 20px;
+        padding-bottom: 10px;
+      }
+      #controls {
+        display: inline-block;
+      }
+      .deleteButton {
+        display: block;
+        font-size: 20px;
+      }
+      .deleteButton:hover {
+        cursor: pointer;
+        color: #ff3381;
+      }
+      .muteButton {
+        display: block;
+        font-size: 22px;
+        left: +3px;
+        bottom: +20px;
+      }
+      .muteButton:hover {
+        cursor: pointer;
+        color: #ff3381;
+      }
+      .muted {
+        color: #ff3381;
+      }
+    </style>
+  </head>
+  <body
+    ondragover="event.stopPropagation(); event.preventDefault();"
+    ondrop="event.stopPropagation(); event.preventDefault();"
+  >
+    <div
+      class="glyphicon glyphicon-play"
+      id="playButton"
+      onmousedown="play(this)"
+    ></div>
+    <div id="bpmContainer">
+      <input id="bpmInput" type="text" maxlength="3"
+      value="120"pattern="[0-9]|[0-9]|[0-9]" oninput="setBPM(this.value)"
+      outline: none; />
+      <div id="bpmLabel"><b>BPM</b></div>
+    </div>
+    <h1>Step Sequencer</h1>
+    <div id="signature"><img src="images/signature.png" alt="" /></div>
+
+    <div id="stepBox"></div>
+    <div
+      id="dropZone"
+      event.stopPropagation();
+      event.preventDefault();
+      ondragover="event.stopPropagation(); event.preventDefault();"
+      ondrop="event.stopPropagation(); event.preventDefault();
+    dragDrop(event);"
+    >
+      <div class="floating" id="fileImage">
+        <img src="images/musicFile.png" alt="" />
+      </div>
+      Drag and drop a file!
+    </div>
+
+    <script>
+      let steps = 32;
+      let drums = [];
+      let beats = [];
+
+      function addDrum(file) {
+        let fileSrc = file.src;
+        let fileName = file.name;
+        if (document.getElementById("container" + fileName)) {
+          return;
+        }
+        document.getElementById("stepBox").innerHTML +=
+          '<div class="container" id="container' + fileName + '""></div>';
+        let drum = {
+          sound: new Tone.Player(fileSrc).toMaster(),
+          name: fileName,
+        };
+        drums.push(drum);
+
+        let drumBeats = [];
+        for (i = 0; i < steps; i++) {
+          let beat = {};
+          let beatName = drum.name + [i];
+          beat = {
+            name: beatName,
+            drumName: drum.name,
+            isActive: false,
+            isMuted: false,
+            sound: drum.sound,
+          };
+          drumBeats.push(beat);
+        }
+        beats.push(drumBeats);
+        let html = "";
+        for (let beat of drumBeats) {
+          html +=
+            '<div class="beat class = "' +
+            drum.name +
+            '" id="' +
+            beat.name +
+            '" onmousedown="beatDown(this)"></div>';
+        }
+        html +=
+          '<div id="controls"><div class="muteButton glyphicon glyphicon-volume-off" id="' +
+          drum.name +
+          '"onmousedown="mute(this)""></div><div class="deleteButton glyphicon glyphicon-remove" id="' +
+          drum.name +
+          '" onmousedown="deleteDrum(this)"></div></div><div class="drumName">' +
+          drum.name +
+          "</div>";
+        document.getElementById("container" + drum.name).innerHTML = html;
+      }
+
+      let quit = true;
+      let BPM = 120;
+
+      function sequencer() {
+        let index = 0;
+        Tone.Transport.start();
+
+        function repeat(time) {
+          if (quit === true) {
+            index = 0;
+            return;
+          }
+          let step = index % 32;
+          beats.forEach((item) => {
+            let beat = item[step];
+            if (beat.isActive === true && beat.isMuted === false) {
+              beat.sound.start(time);
+            }
+          });
+          index++;
+        }
+        Tone.Transport.bpm.value = BPM;
+        Tone.Transport.scheduleRepeat(repeat, "32n");
+        let step = 0;
+        Tone.Transport.scheduleRepeat((time) => {
+          Tone.Draw.schedule(() => {
+            if (quit === true) {
+              step = 0;
+              let beats = document.getElementsByClassName("beat");
+              $(beats).css({
+                borderColor: "black",
+              });
+              return;
+            }
+            drums.forEach((drum) => {
+              let drumStep = drum.name + step;
+              let lastStep = step - 1;
+              if (lastStep == -1) {
+                lastStep = 31;
+              } else {
+                lastStep = step - 1;
+              }
+              lastStep = drum.name + lastStep;
+              let htmlLastStep = document.getElementById(lastStep);
+              let htmlStep = document.getElementById(drumStep);
+              $(htmlStep).css({
+                borderColor: "#ff3381",
+              });
+              $(htmlLastStep).css({
+                borderColor: "black",
+              });
+            });
+            step++;
+            if (step == 32) {
+              step = 0;
+            }
+          }, time);
+        }, "32n");
+      }
+      sequencer();
+
+      function beatDown(elem) {
+        if ($(elem).hasClass("beatOn")) {
+          $(elem).removeClass("beatOn");
+        } else $(elem).addClass("beatOn");
+
+        let id = $(elem).attr("id");
+        beats.forEach((item) => {
+          item.forEach((object) => {
+            if (id == object.name) {
+              if (object.isActive === false) {
+                object.isActive = true;
+              } else object.isActive = false;
+            }
+          });
+        });
+      }
+      function mute(elem) {
+        let id = $(elem).attr("id");
+        beats.forEach((item) => {
+          item.forEach((object) => {
+            if (id == object.drumName) {
+              if (object.isMuted === false) {
+                object.isMuted = true;
+              } else object.isMuted = false;
+            }
+          });
+        });
+        if ($(elem).hasClass("muted")) {
+          $(elem).removeClass("muted");
+        } else $(elem).addClass("muted");
+      }
+
+      function play(elem) {
+        if ($(elem).hasClass("glyphicon glyphicon-play")) {
+          $(elem).removeClass("glyphicon glyphicon-play");
+          $(elem).addClass("glyphicon glyphicon-stop");
+          $(".glyphicon-stop").css({
+            color: "#ff3381",
+          });
+          quit = false;
+          Tone.start();
+        } else {
+          $(elem).removeClass("glyphicon glyphicon-stop");
+          $(elem).addClass("glyphicon glyphicon-play");
+          $(".glyphicon-play").css({
+            color: "black",
+          });
+          quit = true;
+        }
+      }
+      document.addEventListener("keydown", (event) => {
+        if (event.code === "Space") {
+          event.stopPropagation();
+          event.preventDefault();
+          let playButton = document.getElementById("playButton");
+          play(playButton);
+        }
+      });
+
+      function dragDrop(event) {
+        var file = event.dataTransfer.items[0].getAsFile();
+        if (
+          file.type !== "audio/wav" &&
+          file.type !== "audio/mpeg" &&
+          file.type !== "audio/x-wav" &&
+          file.type !== "audio/x-mpeg"
+        ) {
+          console.log(file.type);
+          return;
+        }
+        file.src = URL.createObjectURL(file);
+        addDrum(file);
+      }
+      function deleteDrum(elem) {
+        let drumName = $(elem).attr("id");
+        let container = document.getElementById("container" + drumName);
+        container.remove();
+        beats.forEach((item) => {
+          item.forEach((object) => {
+            if (drumName == object.drumName) {
+              object.isActive = false;
+              object.drumName = null;
+              object.name = null;
+              object.sound = null;
+            }
+          });
+        });
+        if (
+          document.getElementById("stepBox").innerHTML === "" &&
+          quit === false
+        ) {
+          {
+            let playButton = document.getElementById("playButton");
+            play(playButton);
+          }
+        }
+      }
+      function setBPM(value) {
+        if (value < 10) {
+          return;
+        }
+        BPM = value;
+        Tone.Transport.bpm.value = BPM;
+      }
+    </script>
+  </body>
+</html>
