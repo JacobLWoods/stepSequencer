@@ -48,10 +48,10 @@
         cursor: pointer;
       }
       #recordButton {
-        width: 75px;
-        height: 75px;
-        background-color: lightgrey;
-        border-radius: 15px;
+        transition: all 0.3s;
+        width: 70px;
+        height: 70px;
+        border: 2px solid black;
         display: flex;
         position: fixed;
         left: 400px;
@@ -155,6 +155,24 @@
         animation-duration: 3s;
         animation-iteration-count: infinite;
         animation-timing-function: ease-in-out;
+      }
+
+      .blinking {
+        animation: blinking;
+        animation-duration: 1.5s;
+        animation-iteration-count: infinite;
+        animation-timing-function: ease-in-out;
+      }
+      @keyframes blinking {
+        from {
+          opacity: 100%;
+        }
+        50% {
+          opacity: 30%;
+        }
+        to {
+          opacity: 100%;
+        }
       }
 
       @keyframes floating {
@@ -389,20 +407,26 @@
         if ($(elem).hasClass("recording")) {
           $(elem).removeClass("recording");
           $(elem).css({
-            backgroundColor: "lightgrey",
+            backgroundColor: "white",
+            "border-radius": "0px",
+            border: "2px solid black",
           });
           $(recordCircle).css({
             backgroundColor: "darkgrey",
           });
+          $(recordCircle).removeClass("blinking");
           recorder.stop();
         } else {
           $(elem).addClass("recording");
           $(elem).css({
-            backgroundColor: "darkgrey",
+            backgroundColor: "lightgrey",
+            "border-radius": "15px",
+            border: "2px solid white",
           });
           $(recordCircle).css({
             backgroundColor: "#ff3381",
           });
+          $(recordCircle).addClass("blinking");
           recorder.start();
         }
       }
