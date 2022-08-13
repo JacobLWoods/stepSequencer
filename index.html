@@ -11,8 +11,10 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
+    <link rel="shortcut icon" href="#" />
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.css" />
+
     <style>
       html,
       body {
@@ -35,8 +37,8 @@
       #playButton {
         width: 50px;
         height: 50px;
-        margin-top: 20px;
-        margin-bottom: 35px;
+        margin-top: 30px;
+        margin-bottom: 30px;
         background-color: white;
         display: block;
         font-style: black;
@@ -45,6 +47,31 @@
       #playButton:hover {
         cursor: pointer;
       }
+      #recordButton {
+        width: 75px;
+        height: 75px;
+        background-color: lightgrey;
+        border-radius: 15px;
+        display: flex;
+        position: fixed;
+        left: 400px;
+        top: 30px;
+        align-items: center;
+        justify-content: center;
+      }
+      #recordButton:hover {
+        cursor: pointer;
+      }
+      #recordCircle {
+        position: absolute;
+        align-items: center;
+        height: 15px;
+        width: 15px;
+        border-radius: 100%;
+        background-color: darkgrey;
+        z-index: 99;
+      }
+
       .container {
         z-index: 0;
         position: relative;
@@ -88,9 +115,9 @@
       }
 
       #bpmContainer {
-        position: absolute;
+        position: fixed;
         display: inline-block;
-        left: 400px;
+        left: 290px;
         top: 55px;
       }
 
@@ -112,8 +139,9 @@
       }
 
       #signature {
-        position: absolute;
-        left: 500px;
+        position: fixed;
+        display: inline-block;
+        left: 150px;
         top: 0px;
         padding-top: 30px;
         height: 110px;
@@ -157,9 +185,7 @@
         padding: 20px;
         padding-bottom: 10px;
       }
-      #controls {
-        display: inline-block;
-      }
+
       .deleteButton {
         display: block;
         font-size: 20px;
@@ -181,25 +207,46 @@
       .muted {
         color: #ff3381;
       }
+      #controls {
+        display: inline-block;
+        position: relative;
+      }
+      audio {
+        position: absolute;
+        display: inline-block;
+        top: 38px;
+        left: 500px;
+      }
+      header {
+        height: 100px;
+      }
     </style>
   </head>
   <body
     ondragover="event.stopPropagation(); event.preventDefault();"
     ondrop="event.stopPropagation(); event.preventDefault();"
   >
-    <div
-      class="glyphicon glyphicon-play"
-      id="playButton"
-      onmousedown="play(this)"
-    ></div>
-    <div id="bpmContainer">
-      <input id="bpmInput" type="text" maxlength="3"
-      value="120"pattern="[0-9]|[0-9]|[0-9]" oninput="setBPM(this.value)"
-      outline: none; />
-      <div id="bpmLabel"><b>BPM</b></div>
-    </div>
-    <h1>Step Sequencer</h1>
-    <div id="signature"><img src="images/signature.png" alt="" /></div>
+    <header>
+      <div
+        class="glyphicon glyphicon-play"
+        id="playButton"
+        onmousedown="play(this)"
+      ></div>
+      <audio
+        controls
+        onkeydown="event.stopPropagation();
+  event.preventDefault();"
+      ></audio>
+      <div id="recordButton" onmousedown="record(this)">
+        <div id="recordCircle"></div>
+      </div>
+      <div id="bpmContainer">
+        <input id="bpmInput" type="text" maxlength="3" value="120"
+        pattern="[0-9]" oninput="setBPM(this.value)" outline: none; />
+        <div id="bpmLabel"><b>BPM</b></div>
+      </div>
+      <div id="signature"><img src="images/signature.svg" alt="" /></div>
+    </header>
 
     <div id="stepBox"></div>
     <div
@@ -211,7 +258,7 @@
     dragDrop(event);"
     >
       <div class="floating" id="fileImage">
-        <img src="images/musicFile.png" alt="" />
+        <img src="images/musicFile.svg" alt="" />
       </div>
       Drag and drop a file!
     </div>
@@ -221,53 +268,9 @@
       let drums = [];
       let beats = [];
 
-      function addDrum(file) {
-        let fileSrc = file.src;
-        let fileName = file.name;
-        if (document.getElementById("container" + fileName)) {
-          return;
-        }
-        document.getElementById("stepBox").innerHTML +=
-          '<div class="container" id="container' + fileName + '""></div>';
-        let drum = {
-          sound: new Tone.Player(fileSrc).toMaster(),
-          name: fileName,
-        };
-        drums.push(drum);
-
-        let drumBeats = [];
-        for (i = 0; i < steps; i++) {
-          let beat = {};
-          let beatName = drum.name + [i];
-          beat = {
-            name: beatName,
-            drumName: drum.name,
-            isActive: false,
-            isMuted: false,
-            sound: drum.sound,
-          };
-          drumBeats.push(beat);
-        }
-        beats.push(drumBeats);
-        let html = "";
-        for (let beat of drumBeats) {
-          html +=
-            '<div class="beat class = "' +
-            drum.name +
-            '" id="' +
-            beat.name +
-            '" onmousedown="beatDown(this)"></div>';
-        }
-        html +=
-          '<div id="controls"><div class="muteButton glyphicon glyphicon-volume-off" id="' +
-          drum.name +
-          '"onmousedown="mute(this)""></div><div class="deleteButton glyphicon glyphicon-remove" id="' +
-          drum.name +
-          '" onmousedown="deleteDrum(this)"></div></div><div class="drumName">' +
-          drum.name +
-          "</div>";
-        document.getElementById("container" + drum.name).innerHTML = html;
-      }
+      var audioContext = Tone.getContext();
+      var dest = audioContext.createMediaStreamDestination();
+      var recorder = new MediaRecorder(dest.stream);
 
       let quit = true;
       let BPM = 120;
@@ -370,6 +373,7 @@
             color: "#ff3381",
           });
           quit = false;
+          Tone.Transport.start();
           Tone.start();
         } else {
           $(elem).removeClass("glyphicon glyphicon-stop");
@@ -378,6 +382,28 @@
             color: "black",
           });
           quit = true;
+        }
+      }
+      function record(elem) {
+        let recordCircle = document.getElementById("recordCircle");
+        if ($(elem).hasClass("recording")) {
+          $(elem).removeClass("recording");
+          $(elem).css({
+            backgroundColor: "lightgrey",
+          });
+          $(recordCircle).css({
+            backgroundColor: "darkgrey",
+          });
+          recorder.stop();
+        } else {
+          $(elem).addClass("recording");
+          $(elem).css({
+            backgroundColor: "darkgrey",
+          });
+          $(recordCircle).css({
+            backgroundColor: "red",
+          });
+          recorder.start();
         }
       }
       document.addEventListener("keydown", (event) => {
@@ -402,6 +428,55 @@
         }
         file.src = URL.createObjectURL(file);
         addDrum(file);
+        console.log(file);
+      }
+      function addDrum(file) {
+        let fileSrc = file.src;
+        let fileName = file.name;
+        if (document.getElementById("container" + fileName)) {
+          return;
+        }
+        document.getElementById("stepBox").innerHTML +=
+          '<div class="container" id="container' + fileName + '""></div>';
+        let drum = {
+          sound: new Tone.Player(fileSrc).toDestination(),
+          name: fileName,
+        };
+        drum.sound.connect(dest);
+        drums.push(drum);
+
+        let drumBeats = [];
+        for (i = 0; i < steps; i++) {
+          let beat = {};
+          let beatName = drum.name + [i];
+          beat = {
+            name: beatName,
+            drumName: drum.name,
+            isActive: false,
+            isMuted: false,
+            sound: drum.sound,
+          };
+          drumBeats.push(beat);
+        }
+        beats.push(drumBeats);
+        let html = "";
+        for (let beat of drumBeats) {
+          html +=
+            '<div class="beat class = "' +
+            drum.name +
+            '" id="' +
+            beat.name +
+            '" onmousedown="beatDown(this)"></div>';
+        }
+        html +=
+          '<div id="controls"><div class="muteButton glyphicon glyphicon-volume-off" id="' +
+          drum.name +
+          '"onmousedown="mute(this)""></div><div class="deleteButton glyphicon glyphicon-remove" id="' +
+          drum.name +
+          '" onmousedown="deleteDrum(this)"></div></div><div class="drumName">' +
+          drum.name +
+          "</div>";
+        document.getElementById("container" + drum.name).innerHTML = html;
       }
       function deleteDrum(elem) {
         let drumName = $(elem).attr("id");
@@ -434,6 +509,17 @@
         BPM = value;
         Tone.Transport.bpm.value = BPM;
       }
+      recorder.ondataavailable = (event) => {
+        let chunks = [];
+        console.log(event.data);
+        chunks.push(event.data);
+        let blob = new Blob(chunks, {
+          type: "audio/ogg; codecs=opus;",
+        });
+        var audio = document.querySelector("audio");
+        let source = URL.createObjectURL(blob);
+        audio.src = source;
+      };
     </script>
   </body>
 </html>
