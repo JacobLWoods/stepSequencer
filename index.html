@@ -13,7 +13,7 @@
     ></script>
     <link rel="shortcut icon" href="#" />
     <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-    <link rel="stylesheet" href="../bootstrap/css/bootstrap.css" />
+    <link rel="stylesheet" href="./bootstrap/css/bootstrap.css" />
 
     <style>
       html,
@@ -42,7 +42,7 @@
         background-color: white;
         display: block;
         font-style: black;
-        font-size: 70px;
+        font-size: 65px;
       }
       #playButton:hover {
         cursor: pointer;
@@ -52,8 +52,8 @@
         width: 70px;
         height: 70px;
         border: 2px solid black;
+        position: absolute;
         display: flex;
-        position: fixed;
         left: 400px;
         top: 30px;
         align-items: center;
@@ -115,7 +115,7 @@
       }
 
       #bpmContainer {
-        position: fixed;
+        position: absolute;
         display: inline-block;
         left: 290px;
         top: 55px;
@@ -139,7 +139,7 @@
       }
 
       #signature {
-        position: fixed;
+        position: absolute;
         display: inline-block;
         left: 130px;
         top: 0px;
@@ -452,7 +452,6 @@
         }
         file.src = URL.createObjectURL(file);
         addDrum(file);
-        console.log(file);
       }
       function addDrum(file) {
         let fileSrc = file.src;
